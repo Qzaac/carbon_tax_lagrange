@@ -1,5 +1,6 @@
 import cvxpy as cp
 import numpy as np
+
 #import cvxopt as co
 
 nb_of_products = 7
