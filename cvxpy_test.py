@@ -23,7 +23,7 @@ p.value = [77, 50, 35, 15, 3, 0, 2]
 c = cp.Parameter(nb_of_products, nonpos=False)
 c.value = [37, 92, 32, 8, 2, 0, 1]
 C = cp.Parameter()
-C.value = 1000
+C.value = 60
 
 
 def Ua(X, a):
@@ -52,11 +52,12 @@ def dual(l):
 
 X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
 objective = cp.Minimize(cp.sum(X@p))
-constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1, cp.sum(X[:-1], axis=1)==1, cp.sum(X@c) - C <=0]
+constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1, cp.sum(X[:,:-1], axis=1)==1, cp.sum(X@c) - C <=0]
 prob = cp.Problem(objective, constraints)
 
 res=prob.solve()
 print(X.value)
+print(cp.sum(X[:,:-1], axis=1).value)
 print(constraints)
 print(constraints[-1].dual_value) #the carbon tax for each product is l*c_{i}
 print(dual(constraints[-1].dual_value))
