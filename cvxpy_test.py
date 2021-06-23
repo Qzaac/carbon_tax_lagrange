@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-import cvxopt as co
+#import cvxopt as co
 
 nb_of_products = 7
 nb_of_agents = 3
@@ -17,12 +17,13 @@ bf = [1, 1, 1]
 rc = [0.2, 0.2, 0.1]
 bc = [1, 1, 1]
 
+X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
 p = cp.Parameter(nb_of_products, nonpos=False)
 p.value = [77, 50, 35, 15, 3, 0, 2]
 c = cp.Parameter(nb_of_products, nonpos=False)
 c.value = [37, 92, 32, 8, 2, 0, 1]
 C = cp.Parameter()
-C.value = 0
+C.value = 50
 
 
 def Ua(X, a):
@@ -35,24 +36,35 @@ def centered_Ua(X, a):
 
 
 def dual(l):
-    X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
-    objective = cp.Minimize(cp.sum(X@p) + l*(cp.sum(X@c) - C))
-    constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1 ]
-    prob1 = cp.Problem(objective, constraints)
-    result = prob1.solve()
     
+    objective = cp.Minimize(cp.sum(X@p) + l*(cp.sum(X@c) - C))
+    constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1, cp.sum(X, axis=1)==1] 
+    prob1 = cp.Problem(objective, constraints)
+    prob1.solve()
+    """
     print(prob1.status)
     print(X.value)
     print(result)
-    
-    return cp.sum(X@p) + l*(cp.sum(X@c) - C)
+    """
+    return (cp.sum(X@p) + l*(cp.sum(X@c) - C)).value
 
-dual(0)
+
+X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
+objective = cp.Minimize(cp.sum(X@p))
+constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1, cp.sum(X[:-1], axis=1)==1, cp.sum(X@c) - C <=0]
+prob = cp.Problem(objective, constraints)
+
+res=prob.solve()
+print(X.value)
+print(constraints)
+print(constraints[-1].dual_value) #the carbon tax for each product is l*c_{i}
+print(dual(constraints[-1].dual_value))
+
 
 """
 l=cp.Variable()
-prob2 = cp.Problem(objective=cp.Maximize(dual(l)), constraints=[])
-res = prob2.solve()
+prob2 = cp.Problem(objective=cp.Maximize(dual(l)), constraints=[l>=0])
+res = cp.partial_optimize(prob2, l, X)
 print(l.value())
 print(res)
 print(prob2.status)
