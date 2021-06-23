@@ -23,7 +23,7 @@ p.value = [77, 50, 35, 15, 3, 0, 2]
 c = cp.Parameter(nb_of_products, nonpos=False)
 c.value = [37, 92, 32, 8, 2, 0, 1]
 C = cp.Parameter()
-C.value = 50
+C.value = 1000
 
 
 def Ua(X, a):
@@ -38,7 +38,8 @@ def centered_Ua(X, a):
 def dual(l):
     
     objective = cp.Minimize(cp.sum(X@p) + l*(cp.sum(X@c) - C))
-    constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1, cp.sum(X, axis=1)==1] 
+    utmin = 1
+    constraints = [centered_Ua(X, 0)>=utmin, centered_Ua(X, 1)>=utmin, centered_Ua(X, 2)>=utmin ]
     prob1 = cp.Problem(objective, constraints)
     prob1.solve()
     """
