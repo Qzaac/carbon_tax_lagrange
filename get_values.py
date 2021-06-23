@@ -11,4 +11,34 @@ def get_cell(nomCell):
     cell = sheet.cell(ligne,col).value
     return cell
 
-print(get_cell('D4'))
+def toFloat(arr):
+    retour = []
+    for i in arr:
+        try:
+            if(len(i.split(","))==2):
+                retour.append(float(i.split(",")[0]+"."+i.split(",")[1]))
+            else:
+                retour.append(float(i))
+        except:
+            retour.append(i)
+            print('texte trouvé')
+            print(i)
+    return retour
+
+prix = toFloat(sheet.col_values(4)[3:])
+carbone = toFloat(sheet.col_values(5)[3:])
+
+r = []
+for i in range(4):
+    r.append(toFloat(sheet.col_values(8+2*i)[3:]))
+b = []
+for i in range(4):
+    b.append(toFloat(sheet.col_values(9+2*i)[3:]))
+
+print(prix)
+print(carbone)
+print(r)
+print(b)
+
+
+
