@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-import cvxopt as co
+#import cvxopt as co
 
 nb_of_products = 7
 nb_of_agents = 3
@@ -22,7 +22,7 @@ p.value = [77, 50, 35, 15, 3, 0, 2]
 c = cp.Parameter(nb_of_products, nonpos=False)
 c.value = [37, 92, 32, 8, 2, 0, 1]
 C = cp.Parameter()
-C.value = 0
+C.value = 1000
 
 
 def Ua(X, a):
@@ -37,7 +37,8 @@ def centered_Ua(X, a):
 def dual(l):
     X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
     objective = cp.Minimize(cp.sum(X@p) + l*(cp.sum(X@c) - C))
-    constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1 ]
+    utmin = 1
+    constraints = [centered_Ua(X, 0)>=utmin, centered_Ua(X, 1)>=utmin, centered_Ua(X, 2)>=utmin ]
     prob1 = cp.Problem(objective, constraints)
     result = prob1.solve()
     
@@ -47,7 +48,7 @@ def dual(l):
     
     return cp.sum(X@p) + l*(cp.sum(X@c) - C)
 
-dual(0)
+dual(-0.01)
 
 """
 l=cp.Variable()
