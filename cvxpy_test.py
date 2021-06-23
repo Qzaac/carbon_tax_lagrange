@@ -58,8 +58,7 @@ prob = cp.Problem(objective, constraints)
 
 res=prob.solve()
 print(X.value)
-print(cp.sum(X[:,:-1], axis=1).value)
-print(constraints)
+print(res)
 print(constraints[-1].dual_value) #the carbon tax for each product is l*c_{i}
 print(dual(constraints[-1].dual_value))
 
