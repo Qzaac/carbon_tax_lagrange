@@ -35,10 +35,11 @@ b = []
 for i in range(4):
     b.append(toFloat(sheet.col_values(9+2*i)[3:]))
 
+"""
 print(prix)
 print(carbone)
 print(r)
 print(b)
-
+"""
 
 
