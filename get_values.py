@@ -27,6 +27,8 @@ def toFloat(arr):
     return retour
 
 def update():
+    doses = toFloat(sheet.col_values(16)[3:])
+    #print(doses)
     prix = toFloat(sheet.col_values(6)[3:])
     carbone = toFloat(sheet.col_values(5)[3:])
 
@@ -36,15 +38,18 @@ def update():
     b = []
     for i in range(4):
         b.append(toFloat(sheet.col_values(9+2*i)[3:]))
-
     np.save('./data/prix.npy',prix)
     np.save('./data/carbone.npy', carbone)
     np.save('./data/r.npy', r)
     np.save('./data/b.npy', b)
+    np.save('./data/doses.npy',doses)
 
 def get_data():
     prix = np.load("./data/prix.npy")
     carbone = np.load("./data/carbone.npy")
     r = np.load("./data/r.npy")
     b = np.load("./data/b.npy")
-    return prix, carbone, r, b
+    doses = np.load("./data/doses.npy")
+    return prix, carbone, r, b, doses
+
+#update()

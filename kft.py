@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-import  get_values as data
+import get_values as data
 
 """[0.3        0.17333333 1.17432    2.28       0.042675   0.09
  0.035175   0.264      0.08810526 0.02295    0.195     ]
@@ -17,31 +17,38 @@ import  get_values as data
  [0.1 0.1 1.  1.  0.1 0.1 0.1 0.1 0.1 0.1 0.8]
  [0.1 0.1 1.  1.  0.1 0.1 0.1 0.1 0.1 0.1 0.8]
  [0.1 0.1 1.  1.  0.1 0.1 0.1 0.1 0.1 0.1 0.8]]"""
-p, c, r, b = data.get_data()
+
+p, c, r, b, doses = data.get_data()
+print(p,c,r,b)
 r=r.T
 b=b.T
 nb_of_products, nb_of_agents = r.shape
 X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
 C = cp.Parameter()
-C.value = 400
+C.value = 10000000
 
 def Ua(X, a):
-    return r[0][a]*cp.power(X[a][0] + X[a][1] + b[0][a], 0.5)\
-         + r[2][a]*cp.power(X[a][2] + b[2][a], 0.5)\
-         + r[3][a]*cp.power(X[a][3] + b[3][a], 0.5)\
-         + r[4][a]*cp.power(X[a][4] + X[a][5] + X[a][6] + b[4][a], 0.5)\
-         + r[7][a]*cp.power(2*X[a][7] + X[a][8] + b[7][a], 0.5)\
-         + r[9][a]*cp.power(X[a][9] + b[9][a], 0.5)\
-         + r[10][a]*cp.power(X[a][10] + b[10][a], 0.5)
+    puissance = 0.05
+    multiplicateur = 1.5
+    return multiplicateur*(r[0][a]*cp.power(X[a][0] + X[a][1] + b[0][a], puissance)\
+         + r[2][a]*cp.power(X[a][2] + b[2][a], puissance)\
+         + r[3][a]*cp.power(X[a][3] + b[3][a], puissance)\
+         + r[4][a]*cp.power(X[a][4] + b[4][a], puissance)\
+         + r[5][a]*cp.power(2*X[a][5] + X[a][6] + b[5][a], puissance)\
+         + r[7][a]*cp.power(X[a][7] + b[7][a], puissance)\
+         + r[8][a]*cp.power(X[a][8] + b[8][a], puissance))
 
 def centered_Ua(X, a):
     return Ua(X, a) - Ua(np.zeros(X.shape), a)
 
 objective = cp.Minimize(cp.sum(X@p))
-constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1, centered_Ua(X, 3)>=1, cp.sum(X@c) - C <=0]
+Uamin = 1
+constraints = [centered_Ua(X, 0)>=Uamin, centered_Ua(X, 1)>=Uamin, centered_Ua(X, 2)>=Uamin, centered_Ua(X, 3)>=Uamin, cp.sum(X@c) - C <=0]
 prob = cp.Problem(objective, constraints)
 res = prob.solve()
+
 print("Satut du problème: ", prob.status)
-print("Achats optimaux: ", X.value)
+print("Achats optimaux: ", np.round(X.value,2))
 print("Prix minimisé: ", res)
+print("prix: ",(X@p).value)
 print("Coefficient taxe carbone (lambda): ", constraints[-1].dual_value)
