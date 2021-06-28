@@ -17,13 +17,15 @@ import  get_values as data
  [0.1 0.1 1.  1.  0.1 0.1 0.1 0.1 0.1 0.1 0.8]
  [0.1 0.1 1.  1.  0.1 0.1 0.1 0.1 0.1 0.1 0.8]
  [0.1 0.1 1.  1.  0.1 0.1 0.1 0.1 0.1 0.1 0.8]]"""
+
 p, c, r, b = data.get_data()
 r=r.T
 b=b.T
 nb_of_products, nb_of_agents = r.shape
 X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
 C = cp.Parameter()
-C.value = 400
+C.value = 12800
+uamin=1
 
 def Ua(X, a):
     return r[0][a]*cp.power(X[a][0] + X[a][1] + b[0][a], 0.5)\
@@ -38,10 +40,12 @@ def centered_Ua(X, a):
     return Ua(X, a) - Ua(np.zeros(X.shape), a)
 
 objective = cp.Minimize(cp.sum(X@p))
-constraints = [centered_Ua(X, 0)>=1, centered_Ua(X, 1)>=1, centered_Ua(X, 2)>=1, centered_Ua(X, 3)>=1, cp.sum(X@c) - C <=0]
+constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, centered_Ua(X, 3)>=uamin, cp.sum(X@c) - C <=0]
 prob = cp.Problem(objective, constraints)
 res = prob.solve()
+
 print("Satut du problème: ", prob.status)
-print("Achats optimaux: ", X.value)
+print("Achats optimaux: \n", np.round(X.value))
 print("Prix minimisé: ", res)
+print("Coût en gCO2:", cp.sum(X@c).value)
 print("Coefficient taxe carbone (lambda): ", constraints[-1].dual_value)
