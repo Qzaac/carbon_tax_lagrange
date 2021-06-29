@@ -42,14 +42,12 @@ def update():
     np.save('./data/carbone.npy', carbone)
     np.save('./data/r.npy', r)
     np.save('./data/b.npy', b)
-    np.save('./data/doses.npy',doses)
 
 def get_data():
     prix = np.load("./data/prix.npy")
     carbone = np.load("./data/carbone.npy")
     r = np.load("./data/r.npy")
     b = np.load("./data/b.npy")
-    doses = np.load("./data/doses.npy")
-    return prix, carbone, r, b, doses
+    return prix, carbone, r, b
 
-#update()
+update()
