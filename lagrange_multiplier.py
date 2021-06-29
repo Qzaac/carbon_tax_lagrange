@@ -3,7 +3,7 @@ import numpy as np
 import get_values as data
 
 #Parameter of the gradient rise
-MAX_ITERS = 10
+MAX_ITERS = 100
 rho = 1.0
 
 """
@@ -36,7 +36,7 @@ c = [37, 92, 32, 8, 2, 0, 1]
 
 X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
 C = cp.Parameter()
-C.value = 12800
+C.value = 70
 uamin=1
 
 """
@@ -64,6 +64,11 @@ l = cp.Parameter()
 #initially, there is no tax at all:
 l.value = 0
 
+def mymax(n, m):
+    if (m>=n):
+        return m
+    return n
+
 for t in range(MAX_ITERS):
     print(t, "ieme ITERATION\n")
     #First, we solve the dual problem for a given value of l:
@@ -75,11 +80,13 @@ for t in range(MAX_ITERS):
 
     #Then, we update the value of l using x*(l) (previous l) given by prob.solve() (the government does this):
     #le gouvernement obeserve l'effet de l'imposition passée et acutalise la valeur de l'impôt
-    l =  l + rho*(cp.sum(X@c).value - C)
-    print("Coefficient taxe carbone (lambda): ", l)
+    rho = 1/np.sqrt((t+1))
+    l.value = mymax(0, l.value + rho*(cp.sum(X@c).value - C).value)  
+    print("Coefficient taxe carbone (lambda): ", l.value)
     
+
 print("Achats optimaux: \n", np.round(X.value))
 print("Prix minimisé: ", cp.sum(X@p).value)
 print("Coût en gCO2:", cp.sum(X@c).value)
-print("Coefficient taxe carbone (lambda): ", l)
+print("Coefficient taxe carbone (lambda): ", l.value)
 
