@@ -3,7 +3,7 @@ import numpy as np
 import get_values as data
 
 #Parameter of the gradient rise
-MAX_ITERS = 100
+MAX_ITERS = 500
 rho = 1.0
 
 """
