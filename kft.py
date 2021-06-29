@@ -19,7 +19,6 @@ import get_values as data
  [0.1 0.1 1.  1.  0.1 0.1 0.1 0.1 0.1 0.1 0.8]]"""
 
 p, c, r, b = data.get_data()
-p, c, r, b, doses = data.get_data()
 print(p,c,r,b)
 r=r.T
 b=b.T
