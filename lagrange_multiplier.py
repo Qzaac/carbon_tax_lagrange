@@ -3,7 +3,7 @@ import numpy as np
 import get_values as data
 
 #Parameter of the gradient rise
-MAX_ITERS = 500
+MAX_ITERS = 30
 rho = 1.0
 
 """
@@ -14,6 +14,7 @@ b=b.T
 nb_of_products, nb_of_agents = r.shape
 ##################################
 """
+
 
 #Pour tester:
 nb_of_products = 7
@@ -34,6 +35,7 @@ p = [77, 50, 35, 15, 3, 0, 2]
 c = [37, 92, 32, 8, 2, 0, 1]
 ############################################
 
+
 X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
 C = cp.Parameter()
 C.value = 70
@@ -42,20 +44,23 @@ uamin=1
 """
 #Pour KFT:
 def Ua(X, a):
-    return r[0][a]*cp.power(X[a][0] + X[a][1] + b[0][a], 0.5)\
-         + r[2][a]*cp.power(X[a][2] + b[2][a], 0.5)\
-         + r[3][a]*cp.power(X[a][3] + b[3][a], 0.5)\
-         + r[4][a]*cp.power(X[a][4] + X[a][5] + X[a][6] + b[4][a], 0.5)\
-         + r[7][a]*cp.power(2*X[a][7] + X[a][8] + b[7][a], 0.5)\
-         + r[9][a]*cp.power(X[a][9] + b[9][a], 0.5)\
-         + r[10][a]*cp.power(X[a][10] + b[10][a], 0.5)
-"""
+    puissance = 0.05
+    multiplicateur = 1.5
+    return multiplicateur*(r[0][a]*cp.power(X[a][0] + X[a][1] + b[0][a], puissance)\
+         + r[2][a]*cp.power(X[a][2] + b[2][a], puissance)\
+         + r[3][a]*cp.power(X[a][3] + b[3][a], puissance)\
+         + r[4][a]*cp.power(X[a][4] + b[4][a], puissance)\
+         + r[5][a]*cp.power(2*X[a][5] + X[a][6] + b[5][a], puissance)\
+         + r[7][a]*cp.power(X[a][7] + b[7][a], puissance)\
+         + r[8][a]*cp.power(X[a][8] + b[8][a], puissance))
 
+"""
 #Pour tester:
 def Ua(X, a):
     return rv[a]*cp.power(X[a][0] + X[a][1] + bv[a], 0.5) + rt[a]*cp.power(X[a][2] + bt[a], 0.5) + rb[a]*cp.power(2*X[a][3] + X[a][4] \
            + bb[a], 0.5) + rf[a]*cp.power(X[a][5] + bf[a], 0.5) + rc[a]*cp.power(X[a][6] + bc[a], 0.5)
 #####################################
+
 
 def centered_Ua(X, a):
     return Ua(X, a) - Ua(np.zeros(X.shape), a)
@@ -69,23 +74,33 @@ def mymax(n, m):
         return m
     return n
 
+signe_of_slope=1
+
 for t in range(MAX_ITERS):
     print(t, "ieme ITERATION\n")
     #First, we solve the dual problem for a given value of l:
     objective = cp.Minimize(cp.sum(X@p) + l*(cp.sum(X@c) - C))
-    #KFT: constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, centered_Ua(X, 3)>=uamin]
+    #KFT: 
+    #constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, centered_Ua(X, 3)>=uamin]
     constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, cp.sum(X[:,:-1], axis=1)==1]
     prob = cp.Problem(objective, constraints)
     prob.solve()
+    previous = (cp.sum(X@p) + l*(cp.sum(X@c) - C)).value
+    signe_of_slope=signe_of_slope*(cp.sum(X@c).value - C).value
 
     #Then, we update the value of l using x*(l) (previous l) given by prob.solve() (the government does this):
     #le gouvernement obeserve l'effet de l'imposition passée et acutalise la valeur de l'impôt
-    rho = 1/np.sqrt((t+1))
-    l.value = mymax(0, l.value + rho*(cp.sum(X@c).value - C).value)  
+    #rho = 1/(t+1)
+    l.value = mymax(0, l.value + rho*(cp.sum(X@c).value - C).value)
+    next = (cp.sum(X@p) + l*(cp.sum(X@c) - C)).value  
+
+    if(previous - next > 0 or l.value==0 or signe_of_slope<0):
+        rho = rho/2
+    
     print("Coefficient taxe carbone (lambda): ", l.value)
     
 
-print("Achats optimaux: \n", np.round(X.value))
+print("Achats optimaux: \n", np.round(X.value, 3))
 print("Prix minimisé: ", cp.sum(X@p).value)
 print("Coût en gCO2:", cp.sum(X@c).value)
 print("Coefficient taxe carbone (lambda): ", l.value)

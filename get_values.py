@@ -50,4 +50,4 @@ def get_data():
     b = np.load("./data/b.npy")
     return prix, carbone, r, b
 
-update()
+#update()
