@@ -2,106 +2,76 @@ import cvxpy as cp
 import numpy as np
 import get_values as data
 
-#Parameter of the gradient rise
-MAX_ITERS = 30
+#Paramètres de la montée de gradient
+MAX_ITERS = 50
 rho = 1.0
 
-"""
-#Pour KFT:
+
 p, c, r, b = data.get_data()
 r=r.T
 b=b.T
 nb_of_products, nb_of_agents = r.shape
-##################################
-"""
-
-
-#Pour tester:
-nb_of_products = 7
-nb_of_agents = 3
-#Parameters needed to compute utility functions
-rv = [1.62, 1.62, 1.62]
-bv = [0.1, 0.1, 0.1]
-rt = [1.2, 0.6, 0.4]
-bt = [1, 1, 1]
-rb = [0.5, 1.2, 0.6]
-bb = [1, 1, 1]
-rf = [0.2, 0.4, 0.1]
-bf = [1, 1, 1]
-rc = [0.2, 0.2, 0.1]
-bc = [1, 1, 1]
-
-p = [77, 50, 35, 15, 3, 0, 2]
-c = [37, 92, 32, 8, 2, 0, 1]
-############################################
 
 
 X = cp.Variable((nb_of_agents, nb_of_products), nonneg=True)
 C = cp.Parameter()
-C.value = 70
+C.value = 5500
 uamin=1
 
-"""
-#Pour KFT:
+# --------------- Définition des fonctions d'utilité --------------- #
 def Ua(X, a):
-    puissance = 0.05
-    multiplicateur = 1.5
-    return multiplicateur*(r[0][a]*cp.power(X[a][0] + X[a][1] + b[0][a], puissance)\
-         + r[2][a]*cp.power(X[a][2] + b[2][a], puissance)\
-         + r[3][a]*cp.power(X[a][3] + b[3][a], puissance)\
-         + r[4][a]*cp.power(X[a][4] + b[4][a], puissance)\
-         + r[5][a]*cp.power(2*X[a][5] + X[a][6] + b[5][a], puissance)\
-         + r[7][a]*cp.power(X[a][7] + b[7][a], puissance)\
-         + r[8][a]*cp.power(X[a][8] + b[8][a], puissance))
-
-"""
-#Pour tester:
-def Ua(X, a):
-    return rv[a]*cp.power(X[a][0] + X[a][1] + bv[a], 0.5) + rt[a]*cp.power(X[a][2] + bt[a], 0.5) + rb[a]*cp.power(2*X[a][3] + X[a][4] \
-           + bb[a], 0.5) + rf[a]*cp.power(X[a][5] + bf[a], 0.5) + rc[a]*cp.power(X[a][6] + bc[a], 0.5)
-#####################################
-
+    S=0
+    for i in range(nb_of_products):
+        S+=r[i][a]*cp.power(X[a][i] + b[i][a], 0.5)
+    return S
 
 def centered_Ua(X, a):
     return Ua(X, a) - Ua(np.zeros(X.shape), a)
 
-l = cp.Parameter()
-#initially, there is no tax at all:
-l.value = 0
 
-def mymax(n, m):
-    if (m>=n):
-        return m
-    return n
+#On resoud le probleme une premiere fois sans taxe carbone
+objective = cp.Minimize(cp.sum(X@p))
+constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, centered_Ua(X, 3)>=uamin,\
+               X[:,0] + X[:,1] >= 1, X[0:,2] + X[0:,3] >= 0.5, X[0:,4]>=0.5, X[0:,5] + X[0:,6] >= 0.5, X[0:,7] >= 0.7, X[0:,8] >=1]
+prob = cp.Problem(objective, constraints)
+prob.solve()
+previous = cp.sum(X@p).value
 
-signe_of_slope=1
+#on utilise le gradient de la fonction duale pour déterminer une meilleur valeur de taxe
+lprevious = 0
+print(cp.sum(X@c).value, C.value)
+l = max(0, rho*(cp.sum(X@c) - C).value)
+#for some reason, cvxpy despises high values of l
+while(l>1000):
+    l=l/2
 
 for t in range(MAX_ITERS):
-    print(t, "ieme ITERATION\n")
-    #First, we solve the dual problem for a given value of l:
+    print("\nITERATION numéro", t)
+    #on calcule la fonction duale pour la valeur de la taxe actuelle
     objective = cp.Minimize(cp.sum(X@p) + l*(cp.sum(X@c) - C))
-    #KFT: 
-    #constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, centered_Ua(X, 3)>=uamin]
-    constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, cp.sum(X[:,:-1], axis=1)==1]
+    constraints = [centered_Ua(X, 0)>=uamin, centered_Ua(X, 1)>=uamin, centered_Ua(X, 2)>=uamin, centered_Ua(X, 3)>=uamin,\
+               X[:,0] + X[:,1] >= 1, X[0:,2] + X[0:,3] >= 0.5, X[0:,4]>=0.5, X[0:,5] + X[0:,6] >= 0.5, X[0:,7] >= 0.7, X[0:,8] >=1]
     prob = cp.Problem(objective, constraints)
     prob.solve()
-    previous = (cp.sum(X@p) + l*(cp.sum(X@c) - C)).value
-    signe_of_slope=signe_of_slope*(cp.sum(X@c).value - C).value
+    next = (cp.sum(X@p) + l*(cp.sum(X@c) - C)).value
 
-    #Then, we update the value of l using x*(l) (previous l) given by prob.solve() (the government does this):
-    #le gouvernement obeserve l'effet de l'imposition passée et acutalise la valeur de l'impôt
-    #rho = 1/(t+1)
-    l.value = mymax(0, l.value + rho*(cp.sum(X@c).value - C).value)
-    next = (cp.sum(X@p) + l*(cp.sum(X@c) - C)).value  
-
-    if(previous - next > 0 or l.value==0 or signe_of_slope<0):
+    l = max(0, l + rho*(cp.sum(X@c) - C).value)
+    while(l>1000):
+        l=l/2
+        
+    #condition pour la recherche linéaire
+    if(previous - next > 10**(-2)*cp.abs(cp.sum(X@c).value - C).value):
+        print("BAD IDEAAA! previous - next :", previous - next)
         rho = rho/2
+        l=lprevious
+    #si le saut a apporté une amélioration, on actualise la valeur de previous
+    previous = next 
     
-    print("Coefficient taxe carbone (lambda): ", l.value)
+    print("rho", rho)
+    print("Coefficient taxe carbone (lambda): ", l)
     
 
 print("Achats optimaux: \n", np.round(X.value, 3))
 print("Prix minimisé: ", cp.sum(X@p).value)
 print("Coût en gCO2:", cp.sum(X@c).value)
-print("Coefficient taxe carbone (lambda): ", l.value)
-
+print("Coefficient taxe carbone (lambda): ", l)
